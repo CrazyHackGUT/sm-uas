@@ -18,7 +18,7 @@ bool        g_bReady;
 
 public Plugin myinfo = {
     description = "Performs a operation for loading administrators and groups",
-    version     = "0.0.0.3",
+    version     = "0.0.0.4",
     author      = "CrazyHackGUT aka Kruzya",
     name        = "[UAS] Core",
     url         = "https://kruzya.me"
@@ -156,12 +156,22 @@ void QueryServer()
 
 void QueryOverrides()
 {
-    char szQuery[256];
-    g_hDB.Format(szQuery, sizeof(szQuery), "SELECT `command`, `override_type`, `flags` FROM `uas_override_server` INNER JOIN `uas_override` ON `uas_override`.`override_id` = `uas_override_server`.`override_id` WHERE `server_id` = %d", g_iServerID);
+    char szQuery[512];
+    g_hDB.Format(szQuery, sizeof(szQuery), "SELECT `command`, CASE `override_type` WHEN 'Command' THEN 1 WHEN 'CommandGroup' THEN 2 ELSE -1 END AS `override_type`, `flags` FROM `uas_override_server` INNER JOIN `uas_override` ON `uas_override`.`override_id` = `uas_override_server`.`override_id` WHERE `server_id` = %d", g_iServerID);
     g_hDB.Query(SQL_QueryOverrides, szQuery);
 }
 
 void QueryGroups()
+{
+    char szPrefix[128];
+    g_hConfiguration.GetString("group_prefix", szPrefix, sizeof(szPrefix), "");
+
+    char szQuery[512];
+    g_hDB.Format(szQuery, sizeof(szQuery), "SELECT CONCAT('%s', `title`) AS `title`, `immunity`, `flags` FROM `uas_group` WHERE `deleted_at` IS NULL", szPrefix);
+    g_hDB.Query(SQL_QueryGroups, szQuery);
+}
+
+void QueryAdmins()
 {}
 
 /**
@@ -257,13 +267,127 @@ public void SQL_QueryOverrides(Database hDB, DBResultSet hResults, const char[] 
     }
 
     char szCommand[256];
-    char szOverrideType[32];
     while (hResults.FetchRow())
     {
         hResults.FetchString(0, szCommand, sizeof(szCommand));
-        hResults.FetchString(1, szOverrideType, sizeof(szOverrideType));
+        AddCommandOverride(szCommand, view_as<OverrideType>(hResults.FetchInt(1)), hResults.FetchInt(2));
+    }
+}
 
-        AddCommandOverride(szCommand, UTIL_StringOverrideTypeToInternal(szOverrideType), hResults.FetchInt(2));
+public void SQL_QueryGroups(Database hDB, DBResultSet hResults, const char[] szError, any data)
+{
+    if (!hResults)
+    {
+        LogError("SQL_QueryGroups: %s", szError);
+        return;
+    }
+
+    if (!hResults.HasResults || hResults.RowCount < 1)
+    {
+        LogMessage("SQL_QueryGroups: No one group has been added to database");
+        return;
+    }
+
+    char szTitle[256];
+    GroupId eGroup;
+    while (hResults.FetchRow())
+    {
+        hResults.FetchString(0, szTitle, sizeof(szTitle));
+        eGroup = CreateAdmGroup(szTitle);
+        if (eGroup == INVALID_GROUP_ID)
+        {
+            LogError("SQL_QueryGroups: %s already exists", szTitle);
+            continue;
+        }
+
+        eGroup.ImmunityLevel = hResults.FetchInt(1);
+        UTIL_AssignGroupPermissions(eGroup, hResults.FetchInt(2));
+    }
+
+    char szPrefix[128];
+    char szQuery[768];
+    g_hConfiguration.GetString("group_prefix", szTitle, sizeof(szTitle), "");
+    
+    // Load group immunity and overrides.
+    g_hDB.Format(szQuery, sizeof(szQuery), "SELECT CONCAT('%s', `uas_group_immunity`.`target`) AS `target`, CONCAT('%s', `uas_group_immunity`.`other`) AS `other` FROM `uas_group_immunity` INNER JOIN `uas_group` `target_group` ON `uas_group_immunity`.`target` = `target_group`.`title` INNER JOIN `uas_group` `other_group` ON `uas_group_immunity`.`other` = `other_group`.`title` WHERE `target_group`.`deleted_at` IS NULL AND `other_group`.`deleted_at` IS NULL ORDER BY `target`", szPrefix, szPrefix);
+    g_hDB.Query(SQL_QueryGroups_Immunity, szQuery);
+
+    g_hDB.Format(szQuery, sizeof(szQuery), "SELECT CONCAT('%s', `uas_group`.`title`) AS `title`, `uas_group_override`.`command`, CASE `uas_group_override`.`override_type` WHEN 'Command' THEN 1 WHEN 'CommandGroup' THEN 2 ELSE -1 END AS `override_type`, CASE `uas_group_override`.`has_access` WHEN 'Y' THEN 1 WHEN 'N' THEN 0 END AS `has_access` FROM `uas_group_override` INNER JOIN `uas_group` ON `uas_group_override`.`title` = `uas_group`.`title` WHERE `uas_group`.`deleted_at` IS NULL ORDER BY `title`", szPrefix);
+    g_hDB.Query(SQL_QueryGroups_Overrides, szQuery);
+
+    // Load admins.
+    QueryAdmins();
+}
+
+public void SQL_QueryGroups_Immunity(Database hDB, DBResultSet hResults, const char[] szError, any data)
+{
+    if (!hResults)
+    {
+        LogError("SQL_QueryGroups_Immunity: %s", szError);
+        return;
+    }
+
+    if (!hResults.HasResults || hResults.RowCount < 1)
+    {
+        LogMessage("SQL_QueryGroups_Immunity: No one group has been assigned to immunity other in database");
+        return;
+    }
+
+    char szImmutable[256];
+    char szOther[256];
+    GroupId eImmutable, eOther;
+    while (hResults.FetchRow())
+    {
+        hResults.FetchString(0, szImmutable, sizeof(szImmutable));
+        hResults.FetchString(1, szOther,     sizeof(szOther));
+
+        eImmutable = FindAdmGroup(szImmutable);
+        if (eImmutable == INVALID_GROUP_ID)
+        {
+            LogError("SQL_QueryGroups_Immunity: Immutable admin group (%s) not found", szImmutable);
+            continue;
+        }
+
+        eOther = FindAdmGroup(szOther);
+        if (eImmutable == INVALID_GROUP_ID)
+        {
+            LogError("SQL_QueryGroups_Immunity: Other admin group (%s) not found", szOther);
+            continue;
+        }
+
+        eImmutable.AddGroupImmunity(eOther);
+    }
+}
+
+public void SQL_QueryGroups_Overrides(Database hDB, DBResultSet hResults, const char[] szError, any data)
+{
+    if (!hResults)
+    {
+        LogError("SQL_QueryGroups_Overrides: %s", szError);
+        return;
+    }
+
+    if (!hResults.HasResults || hResults.RowCount < 1)
+    {
+        LogMessage("SQL_QueryGroups_Overrides: No one group has been received overrides in database");
+        return;
+    }
+
+    char szTitle[256], szCommand[256];
+    GroupId eGroup;
+    while (hResults.FetchRow())
+    {
+        hResults.FetchString(0, szTitle,    sizeof(szTitle));
+        hResults.FetchString(1, szCommand,  sizeof(szCommand));
+
+        eGroup = FindAdmGroup(szTitle);
+        if (eGroup == INVALID_GROUP_ID)
+        {
+            LogError("SQL_QueryGroups_Overrides: Admin group (%s) not found", szTitle);
+            continue;
+        }
+
+        eGroup.AddCommandOverride(szCommand, view_as<OverrideType>(hResults.FetchInt(2)), view_as<OverrideRule>(hResults.FetchInt(3)));
     }
 }
 
@@ -325,17 +449,17 @@ void UTIL_GetServerHostname(char[] szBuffer, int iBufferSize)
 /**
  * @section String to internal converters
  */
-OverrideType UTIL_StringOverrideTypeToInternal(const char[] szOverrideType)
+void UTIL_AssignGroupPermissions(GroupId eGroup, int iFlags)
 {
-    if (!strcmp(szOverrideType, "CommandGroup", true))
+    int iFlag;
+    AdminFlag eFlag;
+    for (int iFlagId = 0; iFlagId < 33; ++iFlagId)
     {
-        return Override_CommandGroup;
-    }
+        iFlag = (1 << iFlagId);
 
-    if (!strcmp(szOverrideType, "Command", true))
-    {
-        return Override_Command;
+        if ((iFlags & iFlag) && BitToFlag(iFlag, eFlag))
+        {
+            eGroup.SetFlag(eFlag, true);
+        }
     }
-
-    return view_as<OverrideType>(-1);
 }
