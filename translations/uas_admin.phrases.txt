@@ -1,0 +1,119 @@
+/**
+ * This file is a part of "Unified Admin System".
+ * Licensed by GNU GPL v3
+ *
+ * All rights reserved.
+ * (c) 2019 CrazyHackGUT aka Kruzya
+ */
+
+"Phrases"
+{
+    /**
+     * Developer phrases (used only on development stage)
+     */
+    "Dev: TODO"
+    {
+        "en"    "TODO"
+        "ru"    "TODO"
+    }
+
+    /**
+     * AdminMenu integration
+     */
+    "AdminMenu: Showed x elements"
+    {
+        "#format"   "{1:d},{2:d}"
+
+        "en"    "Displayed {1} elements (started at {2})"
+        "ru"    "Отображено {1} элементов (начиная с {1})"
+    }
+
+    "AdminMenu: Category"
+    {
+        "en"    "Unified Admin System - Control Panel"
+        "ru"    "Unified Admin System - Панель управления"
+    }
+
+    "AdminMenu: Servers"
+    {
+        "en"    "Servers"
+        "ru"    "Сервера"
+    }
+
+    "AdminMenu: Overrides"
+    {
+        "en"    "Overrides"
+        "ru"    "Переназначения"
+    }
+
+    /**
+     * Generic text
+     */
+    "Generic: Create new entry"
+    {
+        "en"        "Create new entry"
+        "ru"        "Создать новый элемент"
+    }
+
+    "Generic: No entries available"
+    {
+        "en"        "No entries available"
+        "ru"        "Нет доступных элементов"
+    }
+
+    /**
+     * Chat messages
+     */
+    "Chat: Prefix"
+    {
+        "en"    "[UAS] "
+    }
+
+    "Chat: Database is not ready"
+    {
+        "en"    "Database is not ready. Please, try again later."
+        "ru"    "База данных не готова. Пожалуйста, повторите попытку позднее."
+    }
+
+    "Chat: Database problems"
+    {
+        "en"    "Database error received. See logs for more details."
+        "ru"    "Возникла ошибка при работе с БД. Для большей информации, просмотрите логи."
+    }
+
+    /**
+     * Servers
+     */
+    "Server: Entry template"
+    {
+        "#format"   "{1:s},{2:s},{3:d}"
+
+        "en"        "{2}:{3}\n{1}"
+        "ru"        "{2}:{3}\n{1}"
+    }
+
+    /**
+     * Overrides
+     */
+    "Override: Entry template"
+    {
+        "#format"   "{1:t},{2:s}"
+
+        "en"        "[{1}] {2}"
+    }
+
+    /**
+     * Override types
+     */
+    "Override Type: Command"
+    {
+        "en"        "Command"
+        "ru"        "Команда"
+    }
+
+    "Override Type: CommandGroup"
+    {
+        "en"        "Command group"
+        "ru"        "Группа команд"
+    }
+}
