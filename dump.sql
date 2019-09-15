@@ -15,23 +15,14 @@
 CREATE TABLE IF NOT EXISTS `uas_admin` (
   `admin_id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique administrator identifier',
   `username` varchar(256) NOT NULL DEFAULT '' COMMENT 'Username',
+  `auth_method` varchar(32) NOT NULL COMMENT 'Auth method name',
+  `auth_value` varchar(64) NOT NULL COMMENT 'Auth method value',
   `password` varchar(256) NOT NULL DEFAULT '' COMMENT 'Password',
   `flags` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'Flags (bit-summ)',
   `immunity` int(10) unsigned NOT NULL DEFAULT '0' COMMENT 'Immunity',
   `deleted_at` int(11) DEFAULT NULL COMMENT 'Deleted datetime (represented in UNIX TIMESTAMP); if null - administrator is not deleted',
   PRIMARY KEY (`admin_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Administrators storage';
-
--- Data exporting was unselected.
-
--- Dumping structure for table uas.uas_admin_authmethod
-CREATE TABLE IF NOT EXISTS `uas_admin_authmethod` (
-  `admin_id` int(10) unsigned NOT NULL COMMENT 'Administrator identifier, who uses this auth method',
-  `auth_method` varchar(32) NOT NULL COMMENT 'Auth method name',
-  `auth_value` varchar(256) NOT NULL COMMENT 'Auth value',
-  PRIMARY KEY (`admin_id`,`auth_method`),
-  CONSTRAINT `FK__uas_admin` FOREIGN KEY (`admin_id`) REFERENCES `uas_admin` (`admin_id`) ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Used auth methods by Administrator';
 
 -- Data exporting was unselected.
 
