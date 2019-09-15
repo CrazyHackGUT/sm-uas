@@ -22,7 +22,7 @@ int         g_iSequence[AdminCachePart];
 
 public Plugin myinfo = {
     description = "Performs a operation for loading administrators and groups",
-    version     = "1.0.0.0",
+    version     = "1.0.0.1",
     author      = "CrazyHackGUT aka Kruzya",
     name        = "[UAS] Core",
     url         = "https://kruzya.me"
@@ -97,11 +97,6 @@ public void OnPluginStart()
     }
 
     g_hDB.SetCharset("utf8");
-    QueryServer();
-}
-
-public void OnMapStart()
-{
     QueryServer();
 }
 
