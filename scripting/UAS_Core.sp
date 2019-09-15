@@ -15,10 +15,11 @@ bool        g_bLate;
 int         g_iServerID;
 
 bool        g_bReady;
+bool        g_bRequiredAdmins;
 
 public Plugin myinfo = {
     description = "Performs a operation for loading administrators and groups",
-    version     = "0.0.0.4",
+    version     = "0.0.0.5",
     author      = "CrazyHackGUT aka Kruzya",
     name        = "[UAS] Core",
     url         = "https://kruzya.me"
@@ -110,7 +111,7 @@ public void OnRebuildAdminCache(AdminCachePart ePart)
     switch (ePart)
     {
         case AdminCache_Overrides:  QueryOverrides();
-        case AdminCache_Groups:     QueryGroups();
+        case AdminCache_Groups:     g_bRequiredAdmins = true, QueryGroups();
         // AdminCache_Admin is not used. We can't load only admins, if groups is not exists.
     }
 }
@@ -157,7 +158,7 @@ void QueryServer()
 void QueryOverrides()
 {
     char szQuery[512];
-    g_hDB.Format(szQuery, sizeof(szQuery), "SELECT `command`, CASE `override_type` WHEN 'Command' THEN 1 WHEN 'CommandGroup' THEN 2 ELSE -1 END AS `override_type`, `flags` FROM `uas_override_server` INNER JOIN `uas_override` ON `uas_override`.`override_id` = `uas_override_server`.`override_id` WHERE `server_id` = %d", g_iServerID);
+    g_hDB.Format(szQuery, sizeof(szQuery), "SELECT `command`, CASE `override_type` WHEN 'Command' THEN 1 WHEN 'CommandGroup' THEN 2 ELSE -1 END AS `override_type`, `flags` FROM `uas_override_server` INNER JOIN `uas_override` ON `uas_override`.`override_id` = `uas_override_server`.`override_id` WHERE `server_id` = %d OR `server_id` IS NULL", g_iServerID);
     g_hDB.Query(SQL_QueryOverrides, szQuery);
 }
 
@@ -172,7 +173,13 @@ void QueryGroups()
 }
 
 void QueryAdmins()
-{}
+{
+    char szQuery[1024];
+    char szPrefix[128];
+    g_hConfiguration.GetString("group_prefix", szPrefix, sizeof(szPrefix), "");
+    g_hDB.Format(szQuery, sizeof(szQuery), "SELECT `uas_admin`.`admin_id`, `uas_admin_authmethod`.`auth_method`, `uas_admin_authmethod`.`auth_value`, CONCAT('%s', `uas_admin_group`.`title`) AS `group_title`, `uas_admin`.`username`, `uas_admin`.`password`, `uas_admin`.`flags`, `uas_admin`.`immunity` FROM `uas_admin` LEFT JOIN `uas_admin_authmethod` ON `uas_admin_authmethod`.`admin_id` = `uas_admin`.`admin_id` LEFT JOIN `uas_admin_group` ON `uas_admin_group`.`admin_id` = `uas_admin`.`admin_id` WHERE `uas_admin`.`deleted_at` IS NULL AND `uas_admin`.`admin_id` IN (SELECT `admin_id` FROM `uas_admin_server` WHERE `server_id` = %d OR `server_id` IS NULL) GROUP BY `admin_id`, `auth_method`, `group_title`;", szPrefix, g_iServerID);
+    g_hDB.Query(SQL_QueryAdmins, szQuery);
+}
 
 /**
  * @section Query responsers.
@@ -316,7 +323,7 @@ public void SQL_QueryGroups(Database hDB, DBResultSet hResults, const char[] szE
     g_hDB.Query(SQL_QueryGroups_Overrides, szQuery);
 
     // Load admins.
-    QueryAdmins();
+    if (g_bRequiredAdmins) QueryAdmins();
 }
 
 public void SQL_QueryGroups_Immunity(Database hDB, DBResultSet hResults, const char[] szError, any data)
@@ -391,6 +398,63 @@ public void SQL_QueryGroups_Overrides(Database hDB, DBResultSet hResults, const 
     }
 }
 
+public void SQL_QueryAdmins(Database hDB, DBResultSet hResults, const char[] szError, any data)
+{
+    if (!hResults)
+    {
+        LogError("SQL_QueryAdmins: %s", szError);
+        return;
+    }
+
+    if (!hResults.HasResults || hResults.RowCount < 1)
+    {
+        LogMessage("SQL_QueryAdmins: No one admin has been assigned to this server in database");
+        return;
+    }
+
+    AdminId eAID;
+    GroupId eGID;
+    int iPreviousAdminId = -1, iAdminId;
+    char szAuthMethod[32];
+    char szAuthValue[256];
+    char szGroupTitle[256];
+    char szUsername[256];
+    char szPassword[256];
+
+    while (hResults.FetchRow())
+    {
+        iAdminId = hResults.FetchInt(0);
+        if (iAdminId != iPreviousAdminId)
+        {
+            hResults.FetchString(4, szUsername, sizeof(szUsername));
+            eAID = CreateAdmin(szUsername);
+
+            iPreviousAdminId = iAdminId;
+        }
+
+        // Auth method
+        hResults.FetchString(1, szAuthMethod, sizeof(szAuthMethod));
+        hResults.FetchString(2, szAuthValue,  sizeof(szAuthValue));
+        eAID.BindIdentity(szAuthMethod, szAuthValue); // ignore result.
+
+        // Immunity, flags
+        eAID.ImmunityLevel = hResults.FetchInt(7);
+        UTIL_AssignAdminPermissions(eAID, hResults.FetchInt(6));
+
+        // Passwords
+        hResults.FetchString(5, szPassword, sizeof(szPassword));
+        eAID.SetPassword(szPassword);
+
+        // Groups
+        hResults.FetchString(3, szGroupTitle, sizeof(szGroupTitle));
+        eGID = FindAdmGroup(szGroupTitle);
+        if (eGID != INVALID_GROUP_ID)
+        {
+            eAID.InheritGroup(eGID); // ignore result.
+        }
+    }
+}
+
 /**
  * @section Some helpful code.
  */
@@ -398,6 +462,8 @@ void CheckLateLoad()
 {
     if (g_bLate)
     {
+        g_bRequiredAdmins = true;
+
         QueryOverrides();
         QueryGroups();
     }
@@ -460,6 +526,21 @@ void UTIL_AssignGroupPermissions(GroupId eGroup, int iFlags)
         if ((iFlags & iFlag) && BitToFlag(iFlag, eFlag))
         {
             eGroup.SetFlag(eFlag, true);
+        }
+    }
+}
+
+void UTIL_AssignAdminPermissions(AdminId eAID, int iFlags)
+{
+    int iFlag;
+    AdminFlag eFlag;
+    for (int iFlagId = 0; iFlagId < 33; ++iFlagId)
+    {
+        iFlag = (1 << iFlagId);
+
+        if ((iFlags & iFlag) && BitToFlag(iFlag, eFlag))
+        {
+            eAID.SetFlag(eFlag, true);
         }
     }
 }

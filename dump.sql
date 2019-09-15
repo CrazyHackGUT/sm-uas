@@ -52,6 +52,18 @@ CREATE TABLE IF NOT EXISTS `uas_admin_group` (
 
 -- Data exporting was unselected.
 
+-- Dumping structure for table uas.uas_admin_server
+CREATE TABLE IF NOT EXISTS `uas_admin_server` (
+  `admin_id` int(10) unsigned NOT NULL COMMENT 'Administrator identifier',
+  `server_id` int(10) unsigned DEFAULT NULL,
+  UNIQUE KEY `admin_id_server_id` (`admin_id`,`server_id`),
+  KEY `FK_uas_admin_server_uas_server` (`server_id`),
+  CONSTRAINT `FK_uas_admin_server_uas_admin` FOREIGN KEY (`admin_id`) REFERENCES `uas_admin` (`admin_id`) ON UPDATE CASCADE,
+  CONSTRAINT `FK_uas_admin_server_uas_server` FOREIGN KEY (`server_id`) REFERENCES `uas_server` (`server_id`) ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Assigned administrators to servers';
+
+-- Data exporting was unselected.
+
 -- Dumping structure for table uas.uas_group
 CREATE TABLE IF NOT EXISTS `uas_group` (
   `title` varchar(256) NOT NULL COMMENT 'Group name (should be unique)',
@@ -102,7 +114,7 @@ CREATE TABLE IF NOT EXISTS `uas_override` (
 
 -- Dumping structure for table uas.uas_override_server
 CREATE TABLE IF NOT EXISTS `uas_override_server` (
-  `server_id` int(10) unsigned NOT NULL COMMENT 'Server identifier',
+  `server_id` int(10) unsigned DEFAULT NULL COMMENT 'Server identifier',
   `override_id` int(10) unsigned NOT NULL COMMENT 'Override identifier',
   UNIQUE KEY `server_id_override_id` (`server_id`,`override_id`),
   KEY `FK_uas_override_server_uas_override` (`override_id`),
