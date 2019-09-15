@@ -39,9 +39,11 @@ script:
 before_deploy:
     - export CUSTOM_POSTFIX=_$SMVERSION
     - mkdir -p $TRAVIS_BUILD_DIR/../$SFTP_SOURCE_DIRECTORY/addons/sourcemod/{scripting,plugins/UAS,configs}
+    - mkdir -p $TRAVIS_BUILD_DIR/../$SFTP_SOURCE_DIRECTORY/database/
     - cp -Rf $TRAVIS_BUILD_DIR/scripting/* $TRAVIS_BUILD_DIR/../$SFTP_SOURCE_DIRECTORY/addons/sourcemod/scripting/
     - cp -Rf UAS/* $TRAVIS_BUILD_DIR/../$SFTP_SOURCE_DIRECTORY/addons/sourcemod/plugins/UAS/
     - cp -Rf $TRAVIS_BUILD_DIR/configs/* $TRAVIS_BUILD_DIR/../$SFTP_SOURCE_DIRECTORY/addons/sourcemod/configs/
+    - cp -Rf $TRAVIS_BUILD_DIR/database/* $TRAVIS_BUILD_DIR/../$SFTP_SOURCE_DIRECTORY/database/
     - cd $TRAVIS_BUILD_DIR
     - wget --user=$HTTP_USER --password=$HTTP_PASSWORD $BASE_URL/travis.sh
 
