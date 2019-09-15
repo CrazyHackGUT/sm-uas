@@ -90,11 +90,25 @@ CREATE TABLE IF NOT EXISTS `uas_group_override` (
 
 -- Dumping structure for table uas.uas_override
 CREATE TABLE IF NOT EXISTS `uas_override` (
+  `override_id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT 'Override identifier',
   `command` varchar(256) NOT NULL COMMENT 'String containing command name',
   `override_type` enum('Command','CommandGroup') NOT NULL COMMENT 'Override type (specific command or group)',
   `flags` int(11) NOT NULL DEFAULT '0' COMMENT 'New admin flag',
-  PRIMARY KEY (`command`,`override_type`)
+  PRIMARY KEY (`override_id`),
+  UNIQUE KEY `command_override_type` (`command`,`override_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Overrides storage';
+
+-- Data exporting was unselected.
+
+-- Dumping structure for table uas.uas_override_server
+CREATE TABLE IF NOT EXISTS `uas_override_server` (
+  `server_id` int(10) unsigned NOT NULL COMMENT 'Server identifier',
+  `override_id` int(10) unsigned NOT NULL COMMENT 'Override identifier',
+  UNIQUE KEY `server_id_override_id` (`server_id`,`override_id`),
+  KEY `FK_uas_override_server_uas_override` (`override_id`),
+  CONSTRAINT `FK__uas_server` FOREIGN KEY (`server_id`) REFERENCES `uas_server` (`server_id`) ON UPDATE CASCADE,
+  CONSTRAINT `FK_uas_override_server_uas_override` FOREIGN KEY (`override_id`) REFERENCES `uas_override` (`override_id`) ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Storages server relations with overrides';
 
 -- Data exporting was unselected.
 

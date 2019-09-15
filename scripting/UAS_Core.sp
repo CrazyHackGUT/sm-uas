@@ -18,7 +18,7 @@ bool        g_bReady;
 
 public Plugin myinfo = {
     description = "Performs a operation for loading administrators and groups",
-    version     = "0.0.0.2",
+    version     = "0.0.0.3",
     author      = "CrazyHackGUT aka Kruzya",
     name        = "[UAS] Core",
     url         = "https://kruzya.me"
@@ -155,7 +155,11 @@ void QueryServer()
 }
 
 void QueryOverrides()
-{}
+{
+    char szQuery[256];
+    g_hDB.Format(szQuery, sizeof(szQuery), "SELECT `command`, `override_type`, `flags` FROM `uas_override_server` INNER JOIN `uas_override` ON `uas_override`.`override_id` = `uas_override_server`.`override_id` WHERE `server_id` = %d", g_iServerID);
+    g_hDB.Query(SQL_QueryOverrides, szQuery);
+}
 
 void QueryGroups()
 {}
@@ -238,6 +242,31 @@ public void SQL_CreateServer(Database hDB, DBResultSet hResults, const char[] sz
     CheckLateLoad();
 }
 
+public void SQL_QueryOverrides(Database hDB, DBResultSet hResults, const char[] szError, any data)
+{
+    if (!hResults)
+    {
+        LogError("SQL_QueryOverrides: %s", szError);
+        return;
+    }
+
+    if (!hResults.HasResults || hResults.RowCount < 1)
+    {
+        LogMessage("SQL_QueryOverrides: No one override has been assigned to this server");
+        return;
+    }
+
+    char szCommand[256];
+    char szOverrideType[32];
+    while (hResults.FetchRow())
+    {
+        hResults.FetchString(0, szCommand, sizeof(szCommand));
+        hResults.FetchString(1, szOverrideType, sizeof(szOverrideType));
+
+        AddCommandOverride(szCommand, UTIL_StringOverrideTypeToInternal(szOverrideType), hResults.FetchInt(2));
+    }
+}
+
 /**
  * @section Some helpful code.
  */
@@ -291,4 +320,22 @@ void UTIL_GetServerHostname(char[] szBuffer, int iBufferSize)
     }
 
     hostname.GetString(szBuffer, iBufferSize);
+}
+
+/**
+ * @section String to internal converters
+ */
+OverrideType UTIL_StringOverrideTypeToInternal(const char[] szOverrideType)
+{
+    if (!strcmp(szOverrideType, "CommandGroup", true))
+    {
+        return Override_CommandGroup;
+    }
+
+    if (!strcmp(szOverrideType, "Command", true))
+    {
+        return Override_Command;
+    }
+
+    return view_as<OverrideType>(-1);
 }
