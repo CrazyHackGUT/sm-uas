@@ -19,9 +19,18 @@ bool        g_bRequiredAdmins;
 bool        g_bLoading[AdminCachePart];
 int         g_iSequence[AdminCachePart];
 
+// Enable this if you have something problems with queries and you want profile him.
+// #define _UAS_DEBUG 1
+
+#if defined _UAS_DEBUG
+#define SQL_ExecuteQuery(%0,%1,%2,%3,%4)    LogMessage(%4), g_hDB.Query(%0,%1,%2,%3)
+#else
+#define SQL_ExecuteQuery(%0,%1,%2,%3,%4)    g_hDB.Query(%0,%1,%2,%3)
+#endif
+
 public Plugin myinfo = {
     description = "Performs a operation for loading administrators and groups",
-    version     = "1.0.0.2",
+    version     = "1.0.0.3",
     author      = "CrazyHackGUT aka Kruzya",
     name        = "[UAS] Core",
     url         = "https://kruzya.me"
@@ -98,6 +107,11 @@ public void OnPluginStart()
     QueryServer();
 }
 
+public void OnMapStart()
+{
+    QueryUpdateServer();
+}
+
 /**
  * @section Client loader
  */
@@ -117,6 +131,7 @@ public void OnRebuildAdminCache(AdminCachePart ePart)
         return;
     }
 
+    QueryUpdateServer();
     switch (ePart)
     {
         case AdminCache_Overrides:  QueryOverrides();
@@ -161,7 +176,7 @@ void QueryServer()
     char szQuery[256];
     // TODO: rework query and handler.
     g_hDB.Format(szQuery, sizeof(szQuery), "SELECT `server_id` FROM `uas_server` WHERE `address` = INET_ATON('%s') AND `port` = %d", szAddress, iPort);
-    SQL_ExecuteQuery(SQL_QueryServer, szQuery, hPack, _, "QueryServer()");
+    SQL_ExecuteQuery(SQL_QueryServer, szQuery, hPack, DBPrio_High, "QueryServer()");
 }
 
 void QueryOverrides()
@@ -171,7 +186,7 @@ void QueryOverrides()
 
     char szQuery[512];
     g_hDB.Format(szQuery, sizeof(szQuery), "SELECT `command`, CASE `override_type` WHEN 'Command' THEN 1 WHEN 'CommandGroup' THEN 2 ELSE -1 END AS `override_type`, `flags` FROM `uas_override_server` INNER JOIN `uas_override` ON `uas_override`.`override_id` = `uas_override_server`.`override_id` WHERE `server_id` = %d OR `server_id` IS NULL", g_iServerID);
-    SQL_ExecuteQuery(SQL_QueryOverrides, szQuery, ++g_iSequence[AdminCache_Overrides], _, "QueryOverrides()");
+    SQL_ExecuteQuery(SQL_QueryOverrides, szQuery, ++g_iSequence[AdminCache_Overrides], DBPrio_Normal, "QueryOverrides()");
 }
 
 void QueryGroups()
@@ -185,7 +200,7 @@ void QueryGroups()
 
     char szQuery[512];
     g_hDB.Format(szQuery, sizeof(szQuery), "SELECT CONCAT('%s', `title`) AS `title`, `immunity`, `flags` FROM `uas_group` WHERE `deleted_at` IS NULL", szPrefix);
-    SQL_ExecuteQuery(SQL_QueryGroups, szQuery, ++g_iSequence[AdminCache_Groups], _, "QueryGroups()");
+    SQL_ExecuteQuery(SQL_QueryGroups, szQuery, ++g_iSequence[AdminCache_Groups], DBPrio_Normal, "QueryGroups()");
 }
 
 void QueryAdmins()
@@ -197,7 +212,24 @@ void QueryAdmins()
     char szPrefix[128];
     g_hConfiguration.GetString("group_prefix", szPrefix, sizeof(szPrefix), "");
     g_hDB.Format(szQuery, sizeof(szQuery), "SELECT `uas_admin`.`admin_id`, `uas_admin`.`auth_method`, `uas_admin`.`auth_value`, CONCAT('%s', `uas_admin_group`.`title`) AS `group_title`, `uas_admin`.`username`, `uas_admin`.`password`, `uas_admin`.`flags`, `uas_admin`.`immunity`, `uas_admin`.`deleted_at` FROM `uas_admin` LEFT JOIN `uas_admin_group` ON `uas_admin_group`.`admin_id` = `uas_admin`.`admin_id`WHERE (`uas_admin`.`deleted_at` IS NULL OR `uas_admin`.`deleted_at` > UNIX_TIMESTAMP()) AND `uas_admin`.`admin_id` IN ( SELECT `admin_id` FROM `uas_admin_server` WHERE `server_id` = %d OR `server_id` IS NULL) GROUP BY `admin_id`, `auth_method`, `group_title`;", szPrefix, g_iServerID);
-    SQL_ExecuteQuery(SQL_QueryAdmins, szQuery, ++g_iSequence[AdminCache_Admins], _, "QueryAdmins()");
+    SQL_ExecuteQuery(SQL_QueryAdmins, szQuery, ++g_iSequence[AdminCache_Admins], DBPrio_Normal, "QueryAdmins()");
+}
+
+void QueryUpdateServer()
+{
+    if (!g_hDB) return;
+
+    char szQuery[256];
+    char szHostname[256];
+
+    g_hConfiguration.JumpToKey("server", true);
+    g_hConfiguration.GetString("hostname",  szHostname, sizeof(szHostname), "");
+    g_hConfiguration.Rewind();
+
+    if (szHostname[0] == 0) UTIL_GetServerHostname(szHostname, sizeof(szHostname));
+    
+    g_hDB.Format(szQuery, sizeof(szQuery), "UPDATE `uas_server` SET `hostname` = '%s', `synced_at` = UNIX_TIMESTAMP() WHERE `server_id` = %d", szHostname, g_iServerID);
+    SQL_ExecuteQuery(SQL_GlobalResultHandle, szQuery, 103, DBPrio_High, "QueryUpdateServer())");
 }
 
 /**
@@ -208,8 +240,9 @@ public void SQL_GlobalResultHandle(Database hDb, DBResultSet hResults, const cha
     /**
      * Query ID definitions:
      *
-     * 101  <-> Update hostname
+     * 101  <-> Update hostname  (DEPRECATED; SEE 103)
      * 102  <-> Update Server ID
+     * 103  <-> Update hostname and synced_at
      */
     if (hResults)
     {
@@ -245,23 +278,22 @@ public void SQL_QueryServer(Database hDB, DBResultSet hResults, const char[] szE
         {
             // Update Server ID.
             hDB.Format(szQuery, sizeof(szQuery), "UPDATE `uas_server` SET `server_id` = %d WHERE `server_id` = %d", iServerID, iFetchedServerID);
-            SQL_ExecuteQuery(SQL_GlobalResultHandle, szQuery, 102, _, "SQL_QueryServer(ServerID)");
+            SQL_ExecuteQuery(SQL_GlobalResultHandle, szQuery, 102, DBPrio_High, "SQL_QueryServer(ServerID)");
         }
 
         g_iServerID = iServerID;
 
         // Update hostname.
-        hDB.Format(szQuery, sizeof(szQuery), "UPDATE `uas_server` SET `hostname` = '%s' WHERE `server_id` = %d", szHostname, g_iServerID);
-        SQL_ExecuteQuery(SQL_GlobalResultHandle, szQuery, 101, _, "SQL_QueryServer(Hostname))");
         g_bReady = true;
 
+        QueryUpdateServer();
         CheckLateLoad();
         return;
     }
 
     // Create server.
     hDB.Format(szQuery, sizeof(szQuery), "INSERT INTO `uas_server` (`server_id`, `address`, `port`, `hostname`, `deleted_at`) VALUES (%d, INET_ATON('%s'), %d, '%s', NULL)", iServerID, szAddress, iPort, szHostname);
-    SQL_ExecuteQuery(SQL_CreateServer, szQuery, iServerID, _, "SQL_QueryServer(NewEntry)");
+    SQL_ExecuteQuery(SQL_CreateServer, szQuery, iServerID, DBPrio_High, "SQL_QueryServer(NewEntry)");
 }
 
 public void SQL_CreateServer(Database hDB, DBResultSet hResults, const char[] szError, int iServerID)
@@ -354,10 +386,10 @@ public void SQL_QueryGroups(Database hDB, DBResultSet hResults, const char[] szE
     
     // Load group immunity and overrides.
     g_hDB.Format(szQuery, sizeof(szQuery), "SELECT CONCAT('%s', `uas_group_immunity`.`target`) AS `target`, CONCAT('%s', `uas_group_immunity`.`other`) AS `other` FROM `uas_group_immunity` INNER JOIN `uas_group` `target_group` ON `uas_group_immunity`.`target` = `target_group`.`title` INNER JOIN `uas_group` `other_group` ON `uas_group_immunity`.`other` = `other_group`.`title` WHERE `target_group`.`deleted_at` IS NULL AND `other_group`.`deleted_at` IS NULL ORDER BY `target`", szPrefix, szPrefix);
-    SQL_ExecuteQuery(SQL_QueryGroups_Immunity, szQuery, iSequence, _, "SQL_QueryGroups(Immunity)");
+    SQL_ExecuteQuery(SQL_QueryGroups_Immunity, szQuery, iSequence, DBPrio_Normal, "SQL_QueryGroups(Immunity)");
 
     g_hDB.Format(szQuery, sizeof(szQuery), "SELECT CONCAT('%s', `uas_group`.`title`) AS `title`, `uas_group_override`.`command`, CASE `uas_group_override`.`override_type` WHEN 'Command' THEN 1 WHEN 'CommandGroup' THEN 2 ELSE -1 END AS `override_type`, CASE `uas_group_override`.`has_access` WHEN 'Y' THEN 1 WHEN 'N' THEN 0 END AS `has_access` FROM `uas_group_override` INNER JOIN `uas_group` ON `uas_group_override`.`title` = `uas_group`.`title` WHERE `uas_group`.`deleted_at` IS NULL ORDER BY `title`", szPrefix);
-    SQL_ExecuteQuery(SQL_QueryGroups_Overrides, szQuery, iSequence, _, "SQL_QueryGroups(Override)");
+    SQL_ExecuteQuery(SQL_QueryGroups_Overrides, szQuery, iSequence, DBPrio_Normal, "SQL_QueryGroups(Override)");
 
     // Load admins.
     if (g_bRequiredAdmins) QueryAdmins();
@@ -608,10 +640,4 @@ void UTIL_AssignAdminPermissions(AdminId eAID, int iFlags)
             eAID.SetFlag(eFlag, true);
         }
     }
-}
-
-void SQL_ExecuteQuery(SQLQueryCallback ptrCallback, const char[] szQuery, any data, DBPriority prio = DBPrio_Normal, const char[] szLogPrefix = "")
-{
-    LogMessage("%s: %s", szLogPrefix, szQuery);
-    g_hDB.Query(ptrCallback, szQuery, data, prio);
 }

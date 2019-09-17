@@ -122,6 +122,7 @@ CREATE TABLE IF NOT EXISTS `uas_server` (
   `port` smallint(5) unsigned NOT NULL COMMENT 'Server port',
   `hostname` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Server hostname',
   `deleted_at` int(11) DEFAULT NULL COMMENT 'Deleted datetime (represented in UNIX TIMESTAMP); if null - server is not deleted',
+  `synced_at` int(11) unsigned NOT NULL COMMENT 'Last date when server used sync',
   PRIMARY KEY (`server_id`),
   UNIQUE KEY `address_port` (`address`,`port`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Servers storage';
