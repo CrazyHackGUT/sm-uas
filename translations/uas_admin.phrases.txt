@@ -18,6 +18,17 @@
     }
 
     /**
+     * Locale related data.
+     */
+    "Locale: DateTime format"
+    {
+        // For date, see: http://www.cplusplus.com/reference/ctime/strftime/
+        // Note: you need use percent sign (%) two times for normal functioning.
+        "en"    "%%m/%%d/%%Y at %%H:%%M:%%S"
+        "ru"    "%%d.%%m.%%Y, в %%H:%%M:%%S"
+    }
+
+    /**
      * AdminMenu integration
      */
     "AdminMenu: Showed x elements"
@@ -86,10 +97,10 @@
      */
     "Server: Entry template"
     {
-        "#format"   "{1:s},{2:s},{3:d}"
+        "#format"   "{1:s},{2:s},{3:d},{4:s}"
 
-        "en"        "{2}:{3}\n{1}"
-        "ru"        "{2}:{3}\n{1}"
+        "en"        "{2}:{3}\n{1}\nLast sync: {4}"
+        "ru"        "{2}:{3}\n{1}\nПоследнее обновление: {4}"
     }
 
     /**

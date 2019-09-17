@@ -16,7 +16,7 @@ TopMenu     g_hAdminMenu;
 
 public Plugin myinfo = {
     description = "Provides interface for managing administrators",
-    version     = "0.0.0.1",
+    version     = "0.0.0.2",
     author      = "CrazyHackGUT aka Kruzya",
     name        = "[UAS] Admin",
     url         = "https://kruzya.me"
@@ -122,7 +122,7 @@ void Servers_Menu(int iClient)
         return;
     }
 
-    g_hDB.Query(Servers_OnLoaded, "SELECT `server_id`, INET_NTOA(`address`) AS `address`, `port`, `hostname` FROM `uas_server` WHERE `deleted_at` IS NULL", GetClientUserId(iClient));
+    g_hDB.Query(Servers_OnLoaded, "SELECT `server_id`, INET_NTOA(`address`) AS `address`, `port`, `hostname`, `synced_at` FROM `uas_server` WHERE `deleted_at` IS NULL", GetClientUserId(iClient));
 }
 
 public void Servers_OnLoaded(Database hDB, DBResultSet hResults, const char[] szError, int iClient)
@@ -152,12 +152,15 @@ public void Servers_OnLoaded(Database hDB, DBResultSet hResults, const char[] sz
     {
         char szAddress[32];
         char szHostname[128]; // yeah, in database we store 256...
+        char szSyncDate[48];
 
         while (hResults.FetchRow())
         {
             hResults.FetchString(1, szAddress, sizeof(szAddress));
             hResults.FetchString(3, szHostname, sizeof(szHostname));
-            FormatEx(szBuffer, sizeof(szBuffer), "%t", "Server: Entry template", szHostname, szAddress, hResults.FetchInt(2));
+            UTIL_FormatTime(iClient, szSyncDate, sizeof(szSyncDate), hResults.FetchInt(4));
+
+            FormatEx(szBuffer, sizeof(szBuffer), "%t", "Server: Entry template", szHostname, szAddress, hResults.FetchInt(2), szSyncDate);
             hMenu.AddItem(NULL_STRING, szBuffer, ITEMDRAW_DISABLED);
             iDisplayedServers++;
 
@@ -312,4 +315,15 @@ bool UTIL_IsResponseOk(DBResultSet hResults, int iClient, const char[] szError)
     }
 
     return true;
+}
+
+void UTIL_FormatTime(int iClient, char[] szOutput, int iBufferSize, int iTimestamp = -1)
+{
+    // Set global translation target.
+    SetGlobalTransTarget(iClient);
+
+    // Build buffer with datetime format.
+    char szBuffer[64];
+    FormatEx(szBuffer, sizeof(szBuffer), "%t", "Locale: DateTime format");
+    FormatTime(szOutput, iBufferSize, szBuffer, iTimestamp);
 }
