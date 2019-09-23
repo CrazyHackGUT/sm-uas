@@ -30,7 +30,7 @@ int         g_iSequence[AdminCachePart];
 
 public Plugin myinfo = {
     description = "Performs a operation for loading administrators and groups",
-    version     = "1.0.0.4",
+    version     = "1.0.0.5",
     author      = "CrazyHackGUT aka Kruzya",
     name        = "[UAS] Core",
     url         = "https://kruzya.me"
@@ -211,7 +211,7 @@ void QueryAdmins()
     char szQuery[1024];
     char szPrefix[128];
     g_hConfiguration.GetString("group_prefix", szPrefix, sizeof(szPrefix), "");
-    g_hDB.Format(szQuery, sizeof(szQuery), "SELECT `uas_admin`.`admin_id`, `uas_admin`.`auth_method`, `uas_admin`.`auth_value`, CONCAT('%s', `uas_admin_group`.`title`) AS `group_title`, `uas_admin`.`username`, `uas_admin`.`password`, IFNULL(`uas_admin_flags`.`flags`, `uas_admin`.`flags`) AS `flags`, IFNULL(`uas_admin_flags`.`immunity`, `uas_admin`.`immunity`) AS `immunity` FROM `uas_admin` LEFT JOIN `uas_admin_group` ON `uas_admin_group`.`admin_id` = `uas_admin`.`admin_id` AND `uas_admin_group`.`server_id` = %d AND (`uas_admin_group`.`deleted_at` IS NULL OR `uas_admin_group`.`deleted_at` < UNIX_TIMESTAMP()) LEFT JOIN `uas_admin_flags` ON `uas_admin_flags`.`admin_id` = `uas_admin`.`admin_id` AND `uas_admin_flags`.`server_id` = %d AND (`uas_admin_group`.`deleted_at` IS NULL OR `uas_admin_group`.`deleted_at` < UNIX_TIMESTAMP()) GROUP BY `admin_id`, `auth_method`, `group_title`;", szPrefix, g_iServerID, g_iServerID);
+    g_hDB.Format(szQuery, sizeof(szQuery), "SELECT `uas_admin`.`admin_id`, `uas_admin`.`auth_method`, `uas_admin`.`auth_value`, CONCAT('%s', `uas_admin_group`.`title`) AS `group_title`, `uas_admin`.`username`, `uas_admin`.`password`, IFNULL(`uas_admin_flags`.`flags`, `uas_admin`.`flags`) AS `flags`, IFNULL(`uas_admin_flags`.`immunity`, `uas_admin`.`immunity`) AS `immunity` FROM `uas_admin` LEFT JOIN `uas_admin_group` ON `uas_admin_group`.`admin_id` = `uas_admin`.`admin_id` LEFT JOIN `uas_admin_flags` ON `uas_admin_flags`.`admin_id` = `uas_admin`.`admin_id` WHERE IFNULL(`uas_admin_flags`.`server_id`, `uas_admin_group`.`server_id`) = %d AND IFNULL(IFNULL(`uas_admin_flags`.`deleted_at`, `uas_admin_group`.`deleted_at`), UNIX_TIMESTAMP()) >= UNIX_TIMESTAMP() GROUP BY `admin_id`, `auth_method`, `auth_value`, `group_title`;", szPrefix, g_iServerID);
     SQL_ExecuteQuery(SQL_QueryAdmins, szQuery, ++g_iSequence[AdminCache_Admins], DBPrio_Normal, "QueryAdmins()");
 }
 
