@@ -54,7 +54,7 @@ jobs:
       max-parallel: 1
       matrix:
         mysql: ["5.7", "8.0"]
-        passwd: uas
+        passwd: "uas"
     services:
       mysql:
         image: "mysql:${{ matrix.mysql }}"
