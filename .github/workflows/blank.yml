@@ -44,3 +44,41 @@ jobs:
       run: |
         mkdir -p plugins/UAS/optional
         ./$SMPATH/spcomp $SPCOMP_ARGS -i$SMPATH/include -i$SOURCES/include -o$TARGET/Core $SOURCES/UAS_Core.sp
+
+  # https://github.community/t5/GitHub-Actions/github-actions-cannot-connect-to-mysql-service/td-p/30611
+  test:
+    name: Test MySQL dump
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        mysql: ["5.7", "8.0"]
+        passwd: uas
+    services:
+      mysql:
+        image: "mysql:${{ matrix.mysql }}"
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ matrix.passwd }}
+        ports:
+        - 3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v1
+
+      - name: Install MySQL console client
+        env:
+          MYPASSWD: ${{ matrix.passwd }}
+        run: |
+          apt-get update
+          apt-get install -y mysql-client
+          mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports['3306'] }} -uroot -p$MYPASSWD -e "SHOW DATABASES"
+      - name: Import MySQL dump
+        env:
+          MYPASSWD: ${{ matrix.passwd }}
+          MYDATABASE: uas
+          DUMPPATH: 'database/setup.sql'
+        run: |
+          mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports['3306'] }} -uroot -p$MYPASSWD -e "CREATE DATABASE `$MYDATABASE`"
+          mysqlimport --host 127.0.0.1 --port ${{ job.services.mysql.ports['3306'] }} -uroot -p$MYPASSWD $MYDATABASE $DUMPPATH
