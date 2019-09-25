@@ -79,5 +79,5 @@ jobs:
           MYDATABASE: "uas"
           DUMPPATH: 'database/setup.sql'
         run: |
-          mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports['3306'] }} -uroot -p$MYPASSWD -e "CREATE DATABASE `$MYDATABASE`"
+          mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports['3306'] }} -uroot -p$MYPASSWD -e "CREATE DATABASE \`$MYDATABASE\`"
           mysqlimport --host 127.0.0.1 --port ${{ job.services.mysql.ports['3306'] }} -uroot -p$MYPASSWD $MYDATABASE $DUMPPATH
