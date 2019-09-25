@@ -54,12 +54,11 @@ jobs:
       max-parallel: 1
       matrix:
         mysql: ["5.7", "8.0"]
-        passwd: "uas"
     services:
       mysql:
         image: "mysql:${{ matrix.mysql }}"
         env:
-          MYSQL_ROOT_PASSWORD: ${{ matrix.passwd }}
+          MYSQL_ROOT_PASSWORD: "uas"
         ports:
         - 3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
@@ -69,15 +68,15 @@ jobs:
 
       - name: Install MySQL console client
         env:
-          MYPASSWD: ${{ matrix.passwd }}
+          MYPASSWD: "uas"
         run: |
           apt-get update
           apt-get install -y mysql-client
           mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports['3306'] }} -uroot -p$MYPASSWD -e "SHOW DATABASES"
       - name: Import MySQL dump
         env:
-          MYPASSWD: ${{ matrix.passwd }}
-          MYDATABASE: uas
+          MYPASSWD: "uas"
+          MYDATABASE: "uas"
           DUMPPATH: 'database/setup.sql'
         run: |
           mysql --host 127.0.0.1 --port ${{ job.services.mysql.ports['3306'] }} -uroot -p$MYPASSWD -e "CREATE DATABASE `$MYDATABASE`"
