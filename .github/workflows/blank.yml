@@ -1,0 +1,46 @@
+name: UAS Plugin
+
+on:
+  push:
+    paths:
+      - '*'
+      - '!/docs/*'
+      - '!/.github/*'
+      - '.github/workflows/*'
+      - '!/.travis.yml'
+      - '!README.md'
+      - '!LICENSE'
+
+jobs:
+  build:
+    name: Build plugins
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        sourcemod: ["1.8", "1.9", "1.10"]
+        parameters: ["", "_UAS_DEBUG=1"]
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v1
+
+    - name: Download SourceMod archive
+      env:
+        SMVERSION: ${{ matrix.sourcemod }}
+      run: |
+        mkdir -p am/sm
+        wget -q "http://www.sourcemod.net/latest.php?version=$SMVERSION&os=linux" -O am/sm/sourcemod.tar.gz
+        cd am/sm
+        tar -xzf sourcemod.tar.gz
+        cd ../..
+
+    - name: Compile plugin
+      env:
+        SMPATH: am/sm/addons/sourcemod/scripting
+        SOURCES: scripting
+        TARGET: plugins/UAS
+        SPCOMP_ARGS: ${{ matrix.parameters }}
+      run: |
+        mkdir -p plugins/UAS/optional
+        ./$SMPATH/spcomp $SPCOMP_ARGS -i$SMPATH/include -i$SOURCES/include -o$TARGET/Core $SOURCES/UAS_Core.sp
