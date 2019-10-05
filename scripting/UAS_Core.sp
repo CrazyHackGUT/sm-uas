@@ -8,6 +8,15 @@
 
 #include <sourcemod>
 
+/**
+ * This scratch implemented because SourcePawn 1.11.
+ *    Kruzya, 05.10.2019
+ */
+#define _Overrides  0
+#define _Groups     1
+#define _Admins     2
+#define _AdminCache 3
+
 KeyValues   g_hConfiguration;
 Database    g_hDB;
 
@@ -16,8 +25,8 @@ int         g_iServerID;
 bool        g_bReady;
 bool        g_bRequiredAdmins;
 
-bool        g_bLoading[AdminCachePart];
-int         g_iSequence[AdminCachePart];
+bool        g_bLoading[_AdminCache];
+int         g_iSequence[_AdminCache];
 
 // Enable this if you have something problems with queries and you want profile him.
 // #define _UAS_DEBUG 1
@@ -30,7 +39,7 @@ int         g_iSequence[AdminCachePart];
 
 public Plugin myinfo = {
     description = "Performs a operation for loading administrators and groups",
-    version     = "1.0.0.5",
+    version     = "1.0.0.6",
     author      = "CrazyHackGUT aka Kruzya",
     name        = "[UAS] Core",
     url         = "https://kruzya.me"
@@ -117,7 +126,7 @@ public void OnMapStart()
  */
 public Action OnClientPreAdminCheck(int iClient)
 {
-    return (g_bLoading[AdminCache_Admins]) ? Plugin_Handled
+    return (g_bLoading[_Admins]) ? Plugin_Handled
         : Plugin_Continue;
 }
 
@@ -181,38 +190,38 @@ void QueryServer()
 
 void QueryOverrides()
 {
-    g_bLoading[AdminCache_Overrides] = true;
+    g_bLoading[_Overrides] = true;
     if (!g_hDB) return;
 
     char szQuery[512];
     g_hDB.Format(szQuery, sizeof(szQuery), "SELECT `command`, CASE `override_type` WHEN 'Command' THEN 1 WHEN 'CommandGroup' THEN 2 ELSE -1 END AS `override_type`, `flags` FROM `uas_override_server` INNER JOIN `uas_override` ON `uas_override`.`override_id` = `uas_override_server`.`override_id` WHERE `server_id` = %d OR `server_id` IS NULL", g_iServerID);
-    SQL_ExecuteQuery(SQL_QueryOverrides, szQuery, ++g_iSequence[AdminCache_Overrides], DBPrio_Normal, "QueryOverrides()");
+    SQL_ExecuteQuery(SQL_QueryOverrides, szQuery, ++g_iSequence[_Overrides], DBPrio_Normal, "QueryOverrides()");
 }
 
 void QueryGroups()
 {
-    g_bLoading[AdminCache_Groups] = true;
+    g_bLoading[_Groups] = true;
     if (!g_hDB) return;
-    if (g_bRequiredAdmins) g_bLoading[AdminCache_Admins] = true;
+    if (g_bRequiredAdmins) g_bLoading[_Admins] = true;
 
     char szPrefix[128];
     g_hConfiguration.GetString("group_prefix", szPrefix, sizeof(szPrefix), "");
 
     char szQuery[512];
     g_hDB.Format(szQuery, sizeof(szQuery), "SELECT CONCAT('%s', `title`) AS `title`, `immunity`, `flags` FROM `uas_group` WHERE `deleted_at` IS NULL", szPrefix);
-    SQL_ExecuteQuery(SQL_QueryGroups, szQuery, ++g_iSequence[AdminCache_Groups], DBPrio_Normal, "QueryGroups()");
+    SQL_ExecuteQuery(SQL_QueryGroups, szQuery, ++g_iSequence[_Groups], DBPrio_Normal, "QueryGroups()");
 }
 
 void QueryAdmins()
 {
-    g_bLoading[AdminCache_Admins] = true; // set true if not set already.
+    g_bLoading[_Admins] = true; // set true if not set already.
     if (!g_hDB) return;
 
     char szQuery[1024];
     char szPrefix[128];
     g_hConfiguration.GetString("group_prefix", szPrefix, sizeof(szPrefix), "");
     g_hDB.Format(szQuery, sizeof(szQuery), "SELECT `uas_admin`.`admin_id`, `uas_admin`.`auth_method`, `uas_admin`.`auth_value`, CONCAT('%s', `uas_admin_group`.`title`) AS `group_title`, `uas_admin`.`username`, `uas_admin`.`password`, IFNULL(`uas_admin_flags`.`flags`, `uas_admin`.`flags`) AS `flags`, IFNULL(`uas_admin_flags`.`immunity`, `uas_admin`.`immunity`) AS `immunity` FROM `uas_admin` LEFT JOIN `uas_admin_group` ON `uas_admin_group`.`admin_id` = `uas_admin`.`admin_id` LEFT JOIN `uas_admin_flags` ON `uas_admin_flags`.`admin_id` = `uas_admin`.`admin_id` WHERE IFNULL(`uas_admin_flags`.`server_id`, `uas_admin_group`.`server_id`) = %d AND IFNULL(IFNULL(`uas_admin_flags`.`deleted_at`, `uas_admin_group`.`deleted_at`), UNIX_TIMESTAMP()) >= UNIX_TIMESTAMP() GROUP BY `admin_id`, `auth_method`, `auth_value`, `group_title`;", szPrefix, g_iServerID);
-    SQL_ExecuteQuery(SQL_QueryAdmins, szQuery, ++g_iSequence[AdminCache_Admins], DBPrio_Normal, "QueryAdmins()");
+    SQL_ExecuteQuery(SQL_QueryAdmins, szQuery, ++g_iSequence[_Admins], DBPrio_Normal, "QueryAdmins()");
 }
 
 void QueryUpdateServer()
@@ -312,14 +321,14 @@ public void SQL_CreateServer(Database hDB, DBResultSet hResults, const char[] sz
 
 public void SQL_QueryOverrides(Database hDB, DBResultSet hResults, const char[] szError, int iSequence)
 {
-    if (iSequence != g_iSequence[AdminCache_Overrides])
+    if (iSequence != g_iSequence[_Overrides])
     {
         // Sequence is not equal.
         return;
     }
 
     // Reset loading state.
-    g_bLoading[AdminCache_Overrides] = false;
+    g_bLoading[_Overrides] = false;
 
     if (!hResults)
     {
@@ -343,14 +352,14 @@ public void SQL_QueryOverrides(Database hDB, DBResultSet hResults, const char[] 
 
 public void SQL_QueryGroups(Database hDB, DBResultSet hResults, const char[] szError, int iSequence)
 {
-    if (iSequence != g_iSequence[AdminCache_Groups])
+    if (iSequence != g_iSequence[_Groups])
     {
         // Sequence is not equal.
         return;
     }
 
     // Reset loading state.
-    g_bLoading[AdminCache_Groups] = false;
+    g_bLoading[_Groups] = false;
 
     if (!hResults)
     {
@@ -397,7 +406,7 @@ public void SQL_QueryGroups(Database hDB, DBResultSet hResults, const char[] szE
 
 public void SQL_QueryGroups_Immunity(Database hDB, DBResultSet hResults, const char[] szError, int iSequence)
 {
-    if (iSequence != g_iSequence[AdminCache_Groups])
+    if (iSequence != g_iSequence[_Groups])
     {
         // Sequence is not equal.
         return;
@@ -443,7 +452,7 @@ public void SQL_QueryGroups_Immunity(Database hDB, DBResultSet hResults, const c
 
 public void SQL_QueryGroups_Overrides(Database hDB, DBResultSet hResults, const char[] szError, int iSequence)
 {
-    if (iSequence != g_iSequence[AdminCache_Groups])
+    if (iSequence != g_iSequence[_Groups])
     {
         // Sequence is not equal.
         return;
@@ -481,7 +490,7 @@ public void SQL_QueryGroups_Overrides(Database hDB, DBResultSet hResults, const 
 
 public void SQL_QueryAdmins(Database hDB, DBResultSet hResults, const char[] szError, int iSequence)
 {
-    if (iSequence != g_iSequence[AdminCache_Admins])
+    if (iSequence != g_iSequence[_Admins])
     {
         // Sequence is not equal.
         return;
