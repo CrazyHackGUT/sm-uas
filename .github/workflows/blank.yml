@@ -3,7 +3,7 @@ name: UAS Plugin
 on:
   push:
     paths:
-      - '*'
+      - './*'
       - '!/docs/*'
       - '!/.github/*'
       - '.github/workflows/*'
