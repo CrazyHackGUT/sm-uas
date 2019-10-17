@@ -39,7 +39,7 @@ int         g_iSequence[_AdminCache];
 
 public Plugin myinfo = {
     description = "Performs a operation for loading administrators and groups",
-    version     = "1.0.0.7",
+    version     = "1.0.0.8",
     author      = "CrazyHackGUT aka Kruzya",
     name        = "[UAS] Core",
     url         = "https://kruzya.me"
