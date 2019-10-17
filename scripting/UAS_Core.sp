@@ -364,12 +364,16 @@ public void SQL_QueryGroups(Database hDB, DBResultSet hResults, const char[] szE
     if (!hResults)
     {
         LogError("SQL_QueryGroups: %s", szError);
+
+        if (g_bRequiredAdmins) AdminPostLoad();
         return;
     }
 
     if (!hResults.HasResults || hResults.RowCount < 1)
     {
         LogMessage("SQL_QueryGroups: No one group has been added to database");
+
+        if (g_bRequiredAdmins) QueryAdmins();
         return;
     }
 
@@ -572,6 +576,8 @@ void AdminPostLoad()
             NotifyPostAdminCheck(iClient);
         }
     }
+
+    g_bRequiredAdmins = false;
 }
 
 /**
