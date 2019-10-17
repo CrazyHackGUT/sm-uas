@@ -39,7 +39,7 @@ int         g_iSequence[_AdminCache];
 
 public Plugin myinfo = {
     description = "Performs a operation for loading administrators and groups",
-    version     = "1.0.0.6",
+    version     = "1.0.0.7",
     author      = "CrazyHackGUT aka Kruzya",
     name        = "[UAS] Core",
     url         = "https://kruzya.me"
@@ -502,12 +502,14 @@ public void SQL_QueryAdmins(Database hDB, DBResultSet hResults, const char[] szE
     if (!hResults)
     {
         LogError("SQL_QueryAdmins: %s", szError);
+        AdminPostLoad();
         return;
     }
 
     if (!hResults.HasResults || hResults.RowCount < 1)
     {
         LogMessage("SQL_QueryAdmins: No one admin has been assigned to this server in database");
+        AdminPostLoad();
         return;
     }
 
@@ -554,6 +556,14 @@ public void SQL_QueryAdmins(Database hDB, DBResultSet hResults, const char[] szE
         }
     }
 
+    AdminPostLoad();
+}
+
+/**
+ * @section Post admin load
+ */
+void AdminPostLoad()
+{
     for (int iClient = MaxClients; iClient != 0; --iClient)
     {
         if (IsClientInGame(iClient))
