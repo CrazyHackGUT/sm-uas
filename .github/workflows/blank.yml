@@ -10,6 +10,9 @@ on:
       - '!/.travis.yml'
       - '!README.md'
       - '!LICENSE'
+  schedule:
+    # https://crontab.guru/#15_0_*/7_*_*
+    - cron: '15 0 */7 * *'
 
 jobs:
   build:
