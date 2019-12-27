@@ -1,5 +1,5 @@
 # Unified Admin System
-[![Travis](https://api.travis-ci.com/CrazyHackGUT/sm-autodemo.svg?branch=master)](https://travis-ci.com/CrazyHackGUT/sm-uas)
+[![Travis](https://api.travis-ci.com/CrazyHackGUT/sm-uas.svg?branch=master)](https://travis-ci.com/CrazyHackGUT/sm-uas)
 
 **Unified Admin System** (UAS) - another try make great admin system with supporting multiple servers. UAS tries separate admin loader and any user interaction with storaged administrators, groups, overrides and etc.
 
