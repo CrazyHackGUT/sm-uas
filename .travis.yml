@@ -4,6 +4,7 @@ dist: bionic
 env:
     - SMVERSION=1.9
     - SMVERSION=1.10
+    - SMVERSION=1.11
 
 matrix:
     fast_finish: true
