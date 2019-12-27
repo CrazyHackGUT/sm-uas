@@ -33,10 +33,18 @@
      */
     "AdminMenu: Showed x elements"
     {
-        "#format"   "{1:d},{2:d}"
+        "#format"   "{1:d},{2:d},{3:s}"
 
-        "en"    "Displayed {1} elements (started at {2})"
-        "ru"    "Отображено {1} элементов (начиная с {1})"
+        "en"    "Displayed {1} elements (started at {2})\n{3}"
+        "ru"    "Отображено {1} элементов (начиная с {1})\n{3}"
+    }
+
+    "AdminMenu: Total x elements"
+    {
+        "#format"   "{1:d}"
+
+        "en"        "Total: {1}"
+        "ru"        "Всего: {1}"
     }
 
     "AdminMenu: Category"
@@ -57,6 +65,20 @@
         "ru"    "Переназначения"
     }
 
+    "AdminMenu: AdminFlags Selector"
+    {
+        "en"    "Select the required administrator flags"
+        "ru"    "Выберите необходимые администраторские флаги"
+    }
+
+    "AdminMenu: Item selector"
+    {
+        "#format"   "{1:s},{2:t}"
+
+        "en"        "[{1}] {2}"
+        "ru"        "[{1}] {2}"
+    }
+
     /**
      * Generic text
      */
@@ -70,6 +92,12 @@
     {
         "en"        "No entries available"
         "ru"        "Нет доступных элементов"
+    }
+
+    "Generic: Confirm"
+    {
+        "en"        "Confirm"
+        "ru"        "Подтвердить"
     }
 
     /**
@@ -113,6 +141,26 @@
         "en"        "[{1}] {2}"
     }
 
+    "Override: Please fill command"
+    {
+        "en"        "Please, fill command in chat window"
+        "ru"        "Пожалуйста, введите команду в окно чата"
+    }
+
+    "Override: Select type"
+    {
+        "en"        "Select override type"
+        "ru"        "Выберите тип переназначения"
+    }
+
+    "Override: Filled command"
+    {
+        "#format"   "{1:s}"
+
+        "en"        "Command: {1}"
+        "ru"        "Команда: {1}"
+    }
+
     /**
      * Override types
      */
@@ -126,5 +174,134 @@
     {
         "en"        "Command group"
         "ru"        "Группа команд"
+    }
+
+    /**
+     * Administrator flags
+     */
+    "AdminFlag: Reservation"
+    {
+        "en"        "Reservation slot"
+        "ru"        "Резервный слот"
+    }
+
+    "AdminFlag: Generic"
+    {
+        "en"        "Generic admin abilities"
+        "ru"        "Стандартный доступ Администратора"
+    }
+
+    "AdminFlag: Kick"
+    {
+        "en"        "Kick another user"
+        "ru"        "Кик других игроков"
+    }
+
+    "AdminFlag: Ban"
+    {
+        "en"        "Ban another user"
+        "ru"        "Бан других игроков"
+    }
+
+    "AdminFlag: Unban"
+    {
+        "en"        "Unban another user"
+        "ru"        "Разбан других игроков"
+    }
+
+    "AdminFlag: Slay"
+    {
+        "en"        "Slay/kill/damage another user"
+        "ru"        "Убийство/нанесение урона другим игрокам"
+    }
+
+    "AdminFlag: Changemap"
+    {
+        "en"        "Change the map"
+        "ru"        "Смена карты"
+    }
+
+    "AdminFlag: Convars"
+    {
+        "en"        "Change basic convars"
+        "ru"        "Смена значений стандартных консольных переменных"
+    }
+
+    "AdminFlag: Config"
+    {
+        "en"        "Change configuration"
+        "ru"        "Изменение конфигурации"
+    }
+
+    "AdminFlag: Chat"
+    {
+        "en"        "Special chat privileges"
+        "ru"        "Специальные привилегии чата"
+    }
+
+    "AdminFlag: Vote"
+    {
+        "en"        "Special vote privileges"
+        "ru"        "Специальные привилегии голосования"
+    }
+
+    "AdminFlag: Password"
+    {
+        "en"        "Set a server password"
+        "ru"        "Установка серверного пароля"
+    }
+
+    "AdminFlag: RCON"
+    {
+        "en"        "Use RCON"
+        "ru"        "Использование RCON"
+    }
+
+    "AdminFlag: Cheats"
+    {
+        "en"        "Change sv_cheats and use its commands"
+        "ru"        "Смена sv_cheats и использование связанных команд"
+    }
+
+    "AdminFlag: Root"
+    {
+        "en"        "All access by default"
+        "ru"        "Полный доступ по-умолчанию"
+    }
+
+    "AdminFlag: Custom1"
+    {
+        "en"        "First custom flag type"
+        "ru"        "1-ый кастомный флаг"
+    }
+
+    "AdminFlag: Custom2"
+    {
+        "en"        "Second custom flag type"
+        "ru"        "2-ой кастомный флаг"
+    }
+
+    "AdminFlag: Custom3"
+    {
+        "en"        "Third custom flag type"
+        "ru"        "3-ий кастомный флаг"
+    }
+
+    "AdminFlag: Custom4"
+    {
+        "en"        "Fourth custom flag type"
+        "ru"        "4-ый кастомный флаг"
+    }
+
+    "AdminFlag: Custom5"
+    {
+        "en"        "Fifth custom flag type"
+        "ru"        "5-ый кастомный флаг"
+    }
+
+    "AdminFlag: Custom6"
+    {
+        "en"        "Sixth custom flag type"
+        "ru"        "6-ой кастомный флаг"
     }
 }
