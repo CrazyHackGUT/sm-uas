@@ -39,18 +39,19 @@ script:
     - ./spcomp $COMPILER_PARAMS UAS.git.sp UAS_Admin.sp -E -oUAS/optional/Admin
 
 before_deploy:
-    - export CUSTOM_POSTFIX=_$SMVERSION
-    - mkdir -p $TRAVIS_BUILD_DIR/../$SFTP_SOURCE_DIRECTORY/addons/sourcemod/{scripting,plugins/UAS,configs,translations}
-    - mkdir -p $TRAVIS_BUILD_DIR/../$SFTP_SOURCE_DIRECTORY/database/
-    - cp -Rf $TRAVIS_BUILD_DIR/scripting/* $TRAVIS_BUILD_DIR/../$SFTP_SOURCE_DIRECTORY/addons/sourcemod/scripting/
-    - cp -Rf UAS/* $TRAVIS_BUILD_DIR/../$SFTP_SOURCE_DIRECTORY/addons/sourcemod/plugins/UAS/
-    - cp -Rf $TRAVIS_BUILD_DIR/configs/* $TRAVIS_BUILD_DIR/../$SFTP_SOURCE_DIRECTORY/addons/sourcemod/configs/
-    - cp -Rf $TRAVIS_BUILD_DIR/translations/* $TRAVIS_BUILD_DIR/../$SFTP_SOURCE_DIRECTORY/addons/sourcemod/translations/
-    - cp -Rf $TRAVIS_BUILD_DIR/database/* $TRAVIS_BUILD_DIR/../$SFTP_SOURCE_DIRECTORY/database/
+    - export FILENAME=sm_uas.${TRAVIS_COMMIT:0:7}.${SMVERSION}.tar.gz
+    - export PACKAGE_PATH=${TRAVIS_BUILD_DIR}/../package
+    - mkdir -p $PACKAGE_PATH/addons/sourcemod/{scripting,plugins/UAS,configs,translations}
+    - mkdir -p $PACKAGE_PATH/database
+    - cp -Rf $TRAVIS_BUILD_DIR/scripting/* $PACKAGE_PATH/addons/sourcemod/scripting/
+    - cp -Rf UAS/* $PACKAGE_PATH/addons/sourcemod/plugins/UAS/
+    - cp -Rf $TRAVIS_BUILD_DIR/configs/* $PACKAGE_PATH/addons/sourcemod/configs/
+    - cp -Rf $TRAVIS_BUILD_DIR/translations/* $PACKAGE_PATH/addons/sourcemod/translations/
+    - cp -Rf $TRAVIS_BUILD_DIR/database/* $PACKAGE_PATH/database/
     - cd $TRAVIS_BUILD_DIR
-    - wget --user=$HTTP_USER --password=$HTTP_PASSWORD $BASE_URL/travis.sh
+    - tar -cvf ../${FILENAME} ${PACKAGE_PATH}
 
 deploy:
     - provider: script
       skip_cleanup: true
-      script: bash travis.sh
+      script: curl "${API_URL}?secret_key=${API_KEY}&tags=SourceMod%20${SMVERSION}" -F "artifact=@./../${FILENAME}"
